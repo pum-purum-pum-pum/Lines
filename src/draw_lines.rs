@@ -22,7 +22,7 @@ const RECT_INDICES: &[u16] = &[
     0, 3, 4,
     0, 4, 1
 ];
-pub const MAX_RECT_NUM: usize = 100000;
+pub const MAX_RECT_NUM: usize = 5600_000;
 
 #[derive(Debug, Default, Clone)]
 pub struct Lines {
@@ -272,7 +272,7 @@ mod hex_shader {
             }
             lowp vec4 color = color;
             color.a = smooth;
-            gl_FragColor = color;
+            gl_FragColor = vec4(color.rgb, 0.1);
         } else {
             gl_FragColor = vec4(color.xyz, 0.0);
         }

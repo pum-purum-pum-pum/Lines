@@ -44,9 +44,14 @@ impl Stage {
     pub fn new(ctx: &mut Context) -> Stage {
         let mut lines = Lines::new_gpu_backed();
         let mut prev = vec2(0., 0.);
-        for _ in 0..100000 {
-            let point = vec2(qrand::gen_range(-100., 100.), qrand::gen_range(-100., 100.));
-            lines.add(prev, point, 0.1, vec3(0.9, 0.1, 0.1));
+        for _ in 0..10_000 {
+            let  point = vec2(qrand::gen_range(-100., 100.), qrand::gen_range(-100., 100.));
+            lines.add(
+                prev, 
+                point, 
+                0.1, 
+                vec3(qrand::gen_range(0.5, 1.), qrand::gen_range(0., 1.), qrand::gen_range(0., 1.))
+            );
             prev = point;
         }
 
