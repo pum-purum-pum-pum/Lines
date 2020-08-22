@@ -1,0 +1,12 @@
+[package]
+name = "Lines"
+version = "0.1.0"
+authors = ["vlad <vladzhukovtirko@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+miniquad = "0.2"
+glam = {version = "0.8", features = ["scalar-math"] }
+quad-rand = "0.1.1"
