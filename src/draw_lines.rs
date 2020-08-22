@@ -49,7 +49,7 @@ impl Lines {
         self.angles.clear();
     }
 
-    pub fn add_raw(&mut self, pos: Vec2, scale: Vec2, angle: f32, color: Vec3,) {
+    pub fn add_raw(&mut self, pos: Vec2, scale: Vec2, angle: f32, color: Vec3) {
         self.positions.push(pos);
         self.colors.push(color);
         self.scales.push(scale);
@@ -59,7 +59,7 @@ impl Lines {
     pub fn add(&mut self, from: Vec2, to: Vec2, thickness: f32, color: Vec3) {
         let dir = to - from;
         let length = dir.length();
-        let angle = std::f32::consts::PI / 2. -  dir.y().atan2(dir.x());
+        let angle = std::f32::consts::PI / 2. - dir.y().atan2(dir.x());
         self.add_raw((from + to) / 2., vec2(thickness, length), angle, color)
     }
 
