@@ -246,7 +246,7 @@ mod hex_shader {
     varying lowp vec2 s;
     varying lowp vec4 color;
     uniform highp mat4 mvp;
-    const lowp float aaborder = 0.0045;
+    const lowp float aaborder = 0.0025;
 
     lowp float line_segment(in lowp vec2 p, in lowp vec2 a, in lowp vec2 b) {
         lowp vec2 ba = b - a;
@@ -261,6 +261,7 @@ mod hex_shader {
         lowp vec2 a = ip + rot * vec2(0.0, -s.y / 2.);
         lowp vec2 b = ip + rot * vec2(0.0, s.y / 2.);
         lowp float d = line_segment(pp, a, b) - s.x ;
+        // lowp float scaled_border = min(aaborder, 0.4);
         lowp float scaled_border = min(aaborder / mvp[0][0], 0.1);
         lowp float edge1 = -scaled_border;
         lowp float edge2 = 0.;
@@ -272,7 +273,7 @@ mod hex_shader {
             }
             lowp vec4 color = color;
             color.a = smooth;
-            gl_FragColor = vec4(color.rgb, 0.1);
+            gl_FragColor = color;
         } else {
             gl_FragColor = vec4(color.xyz, 0.0);
         }

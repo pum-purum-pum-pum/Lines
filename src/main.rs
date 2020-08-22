@@ -44,7 +44,7 @@ impl Stage {
     pub fn new(ctx: &mut Context) -> Stage {
         let mut lines = Lines::new_gpu_backed();
         let mut prev = vec2(0., 0.);
-        for _ in 0..10_000 {
+        for _ in 0..500 {
             let  point = vec2(qrand::gen_range(-100., 100.), qrand::gen_range(-100., 100.));
             lines.add(
                 prev, 
@@ -90,7 +90,7 @@ impl EventHandler for Stage {
             delta.set_x(-1. * delta.x());
             delta.set_x(delta.x() / width);
             delta.set_y(delta.y() / height / 2.); // why /2. ??
-            self.camera.position_add(delta, MAP_SIZE as f32);
+            self.camera.position_add(delta, 20. * MAP_SIZE as f32);
             self.mouse.last_left_down = pos;
         }
     }
@@ -101,7 +101,9 @@ impl EventHandler for Stage {
         self.camera.update();
     }
 
-    fn update(&mut self, _ctx: &mut Context) {}
+    fn update(&mut self, _ctx: &mut Context) {
+        self.camera.update()
+    }
 
     fn draw(&mut self, ctx: &mut Context) {
         ctx.begin_default_pass(PassAction::clear_color(1., 0.98, 200. / 255., 1.));
