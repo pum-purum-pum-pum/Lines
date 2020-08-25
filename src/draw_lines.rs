@@ -22,7 +22,7 @@ const RECT_INDICES: &[u16] = &[
     0, 3, 4,
     0, 4, 1
 ];
-pub const MAX_RECT_NUM: usize = 5000_000;
+pub const MAX_RECT_NUM: usize = 5000;
 
 #[derive(Debug, Clone, Copy)]
 #[repr(C)]
