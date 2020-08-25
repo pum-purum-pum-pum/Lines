@@ -6,6 +6,8 @@ use crate::camera::Camera;
 use draw_lines::*;
 use glam::{vec2, vec3, Vec2};
 use quad_rand as qrand;
+use nanoserde::{DeBin};
+
 pub const MAP_SIZE: i32 = 11;
 
 pub struct Mouse {
@@ -42,22 +44,55 @@ struct Stage {
 
 impl Stage {
     pub fn new(ctx: &mut Context) -> Stage {
+        // let map = include_bytes!("../map.bin");
+        // let raw: Vec<Vec<(f64, f64)>> = DeBin::deserialize_bin(map).unwrap();
+
+        // // dbg!(test_deserialized);
         let mut lines = Lines::new_gpu_backed();
-        let mut prev = vec2(0., 0.);
-        for _ in 0..1000 {
-            let  point = vec2(qrand::gen_range(-100., 100.), qrand::gen_range(-100., 100.));
-            lines.add(Line::new(
-                prev, 
-                point, 
-                0.1, 
-                vec3(qrand::gen_range(0.5, 1.), qrand::gen_range(0., 1.), qrand::gen_range(0., 1.))
-            ));
-            prev = point;
+        use std::fs::File;
+        use std::io::{BufReader, Write, Read};
+        
+        let mut f = File::open("map.bin").unwrap();
+        let mut buffer = vec![];
+
+        f.read_to_end(&mut buffer).unwrap();
+        let raw: Vec<Vec<(f64, f64)>> = DeBin::deserialize_bin(&buffer).unwrap();
+
+        let mut prev = vec2(raw[0][0].0 as f32, raw[0][0].1 as f32);
+        let mut point_sum = vec2(0., 0.);
+        let mut point_cnt = 0;
+        for linestring in raw {
+            for point in linestring {
+                let point = vec2(point.0 as f32, point.1 as f32);
+                point_sum += point;
+                point_cnt += 1;
+                lines.add(Line::new(
+                    prev, 
+                    point, 
+                    0.000005, 
+                    vec3(0., 0., 0.)
+                    // vec3(qrand::gen_range(0.5, 1.), qrand::gen_range(0., 1.), qrand::gen_range(0., 1.))
+                ));
+                prev = point;
+            }
         }
+        let mut camera = Camera::default();
+        camera.position_set(point_sum / point_cnt as f32, 20. * MAP_SIZE as f32);
+        // let mut prev = vec2(0., 0.);
+        // for _ in 0..50000 {
+        //     let  point = vec2(qrand::gen_range(-100., 100.), qrand::gen_range(-100., 100.));
+        //     lines.add(Line::new(
+        //         prev, 
+        //         point, 
+        //         0.1, 
+        //         vec3(qrand::gen_range(0.5, 1.), qrand::gen_range(0., 1.), qrand::gen_range(0., 1.))
+        //     ));
+        //     prev = point;
+        // }
 
         Stage {
             lines_renderer: LinesRenderer::new(ctx),
-            camera: Camera::default(),
+            camera,
             lines,
             mouse: Mouse::default(),
         }

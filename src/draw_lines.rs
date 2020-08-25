@@ -9,10 +9,10 @@ use crate::camera::Camera;
 #[rustfmt::skip]
 pub const RECT: &[f32] = &[
     0., 0., 
-    1., -0.75,
-    1., 0.75,
-    -1., 0.75,
-    -1., -0.75,
+    1., -0.95,
+    1., 0.95,
+    -1., 0.95,
+    -1., -0.95,
 ];
 
 #[rustfmt::skip]
@@ -22,7 +22,7 @@ const RECT_INDICES: &[u16] = &[
     0, 3, 4,
     0, 4, 1
 ];
-pub const MAX_RECT_NUM: usize = 5000;
+pub const MAX_RECT_NUM: usize = 50000;
 
 #[derive(Debug, Clone, Copy)]
 #[repr(C)]
@@ -198,7 +198,7 @@ mod hex_shader {
     varying lowp vec2 s;
     varying lowp vec4 color;
     uniform highp mat4 mvp;
-    const lowp float aaborder = 0.0045;
+    const lowp float aaborder = 0.0025;
 
     lowp float line_segment(in lowp vec2 p, in lowp vec2 a, in lowp vec2 b) {
         lowp vec2 ba = b - a;
@@ -213,7 +213,7 @@ mod hex_shader {
         lowp vec2 a = ip + rot * vec2(0.0, -s.y / 2.);
         lowp vec2 b = ip + rot * vec2(0.0, s.y / 2.);
         lowp float d = line_segment(pp, a, b) - s.x ;
-        lowp float scaled_border = min(aaborder / mvp[0][0], 0.1);
+        lowp float scaled_border = min(aaborder / mvp[0][0], 0.00005);
         lowp float edge1 = -scaled_border;
         lowp float edge2 = 0.;
 
