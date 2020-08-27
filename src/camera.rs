@@ -1,7 +1,7 @@
 use glam::{vec2, vec3, vec4, Mat4, Vec2};
-pub const MAX_ZOOM: f32 = 1000.0;
-pub const INIT_ZOOM: f32 = 10.;
-pub const MIN_ZOOM: f32 = 0.00058;
+pub const MAX_ZOOM: f32 = 2.0;
+pub const INIT_ZOOM: f32 = 0.001;
+pub const MIN_ZOOM: f32 = 0.0001;
 
 use std::ops::{Add, Mul};
 

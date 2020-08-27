@@ -1,7 +1,6 @@
 use std::fs::File;
 use std::io::{BufReader, Write};
 use wkt::{self, Geometry};
-use nanoserde::{DeBin, SerBin};
 
 pub type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
@@ -36,12 +35,13 @@ fn main() -> Result<()> {
             *i = (1. * i.0 / max_x, 1. * i.1 / max_y)
         }
     }
-    // dbg!(res);
-    let bytes = SerBin::serialize_bin(&res);
+    // use std::slice::Join;
+    let mut file = File::create("map.txt")?;
+    for i in res.iter() {
+        let line: Vec<_> = i.iter().map(|(a, b)| format!("{} {}", a, b)).collect();
+        let line = line.join(" ") + "\n";
+        file.write_all(line.as_bytes())?;
+    }
 
-    let mut buffer = File::create("map.bin")?;
-
-    // Writes some prefix of the byte string, not necessarily all of it.
-    buffer.write(&bytes)?;
     Ok(())
 }

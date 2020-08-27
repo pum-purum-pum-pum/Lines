@@ -6,7 +6,6 @@ use crate::camera::Camera;
 use draw_lines::*;
 use glam::{vec2, vec3, Vec2};
 use quad_rand as qrand;
-use nanoserde::{DeBin};
 
 pub const MAP_SIZE: i32 = 11;
 
@@ -50,45 +49,64 @@ impl Stage {
         // // dbg!(test_deserialized);
         let mut lines = Lines::new_gpu_backed();
         use std::fs::File;
-        use std::io::{BufReader, Write, Read};
-        
-        let mut f = File::open("map.bin").unwrap();
-        let mut buffer = vec![];
-
-        f.read_to_end(&mut buffer).unwrap();
-        let raw: Vec<Vec<(f64, f64)>> = DeBin::deserialize_bin(&buffer).unwrap();
-
-        let mut prev = vec2(raw[0][0].0 as f32, raw[0][0].1 as f32);
+        use std::io::BufReader;
+        // {
+        //     let f = File::open("map.txt").unwrap();
+        //     let f = BufReader::new(f);
+        //     use std::io::prelude::*;
+        //     let mut point_sum = vec2(0., 0.);
+        //     let mut point_cnt = 0;
+        //     for line in f.lines() {
+        //         let mut points = vec![];
+        //         let line = line.unwrap();
+        //         let numbers: Vec<_> = line.split(" ").collect();
+        //         for i in 0..numbers.len() / 2 {
+        //             points.push(vec2(numbers[i * 2].parse().unwrap(), numbers[i * 2 + 1].parse().unwrap()));
+        //         }
+        //         let mut prev = points[0];
+        //         for point in points.into_iter() {
+        //             point_sum += point;
+        //             point_cnt += 1;
+        //             lines.add(Line::new(
+        //                 prev, 
+        //                 point, 
+        //                 0.000009, 
+        //                 vec3(0., 0., 0.)
+        //                 // vec3(qrand::gen_range(0.5, 1.), qrand::gen_range(0., 1.), qrand::gen_range(0., 1.))
+        //             ));
+        //             prev = point;
+        //         }
+        //         if point_cnt > 1000_000 {
+        //             break;
+        //         }
+        //     }
+        //     let mut camera = Camera::default();
+        //     camera.position_set(point_sum / point_cnt as f32, 20. * MAP_SIZE as f32);
+        // }
         let mut point_sum = vec2(0., 0.);
         let mut point_cnt = 0;
-        for linestring in raw {
-            for point in linestring {
-                let point = vec2(point.0 as f32, point.1 as f32);
-                point_sum += point;
-                point_cnt += 1;
-                lines.add(Line::new(
-                    prev, 
-                    point, 
-                    0.000005, 
-                    vec3(0., 0., 0.)
-                    // vec3(qrand::gen_range(0.5, 1.), qrand::gen_range(0., 1.), qrand::gen_range(0., 1.))
-                ));
-                prev = point;
-            }
+        let mut prev = vec2(0., 0.);
+        let stringline_num = 100;
+        let color = vec3(qrand::gen_range(0.5, 1.), qrand::gen_range(0., 1.), qrand::gen_range(0., 1.));
+        for i in 0..stringline_num {
+            let  point = vec2(qrand::gen_range(-100., 100.), qrand::gen_range(-100., 100.));
+            point_sum += point;
+            point_cnt += 1;
+            let segment_type = match i {
+                0 => SegmentType::All,
+                _ =>  SegmentType::NoFirst
+            };
+            lines.add(Line::new(
+               segment_type,
+                prev, 
+                point, 
+                1., 
+                color
+            ));
+            prev = point;
         }
         let mut camera = Camera::default();
         camera.position_set(point_sum / point_cnt as f32, 20. * MAP_SIZE as f32);
-        // let mut prev = vec2(0., 0.);
-        // for _ in 0..50000 {
-        //     let  point = vec2(qrand::gen_range(-100., 100.), qrand::gen_range(-100., 100.));
-        //     lines.add(Line::new(
-        //         prev, 
-        //         point, 
-        //         0.1, 
-        //         vec3(qrand::gen_range(0.5, 1.), qrand::gen_range(0., 1.), qrand::gen_range(0., 1.))
-        //     ));
-        //     prev = point;
-        // }
 
         Stage {
             lines_renderer: LinesRenderer::new(ctx),
@@ -141,6 +159,9 @@ impl EventHandler for Stage {
     }
 
     fn draw(&mut self, ctx: &mut Context) {
+        let (width, height) = ctx.screen_size();
+        // dbg!(self.camera.get_mvp(height / width).to_cols_array_2d()[0][0], self.camera.zoom);
+        // dbg!(self.camera.get_mvp(height / width).to_cols_array_2d()[0][0] /self.camera.zoom);
         ctx.begin_default_pass(PassAction::clear_color(1., 0.98, 200. / 255., 1.));
         self.lines_renderer.clear_buffers();
         self.lines_renderer.push_segments(ctx, self.lines.clone());
