@@ -50,64 +50,72 @@ impl Stage {
         let mut lines = Lines::new_gpu_backed();
         use std::fs::File;
         use std::io::BufReader;
-        // {
-        //     let f = File::open("map.txt").unwrap();
-        //     let f = BufReader::new(f);
-        //     use std::io::prelude::*;
-        //     let mut point_sum = vec2(0., 0.);
-        //     let mut point_cnt = 0;
-        //     for line in f.lines() {
-        //         let mut points = vec![];
-        //         let line = line.unwrap();
-        //         let numbers: Vec<_> = line.split(" ").collect();
-        //         for i in 0..numbers.len() / 2 {
-        //             points.push(vec2(numbers[i * 2].parse().unwrap(), numbers[i * 2 + 1].parse().unwrap()));
-        //         }
-        //         let mut prev = points[0];
-        //         for point in points.into_iter() {
-        //             point_sum += point;
-        //             point_cnt += 1;
-        //             lines.add(Line::new(
-        //                 prev, 
-        //                 point, 
-        //                 0.000009, 
-        //                 vec3(0., 0., 0.)
-        //                 // vec3(qrand::gen_range(0.5, 1.), qrand::gen_range(0., 1.), qrand::gen_range(0., 1.))
-        //             ));
-        //             prev = point;
-        //         }
-        //         if point_cnt > 1000_000 {
-        //             break;
-        //         }
-        //     }
-        //     let mut camera = Camera::default();
-        //     camera.position_set(point_sum / point_cnt as f32, 20. * MAP_SIZE as f32);
-        // }
-        let mut point_sum = vec2(0., 0.);
-        let mut point_cnt = 0;
-        let mut prev = vec2(0., 0.);
-        let stringline_num = 100;
-        let color = vec3(qrand::gen_range(0.5, 1.), qrand::gen_range(0., 1.), qrand::gen_range(0., 1.));
-        for i in 0..stringline_num {
-            let  point = vec2(qrand::gen_range(-100., 100.), qrand::gen_range(-100., 100.));
-            point_sum += point;
-            point_cnt += 1;
-            let segment_type = match i {
-                0 => SegmentType::All,
-                _ =>  SegmentType::NoFirst
-            };
-            lines.add(Line::new(
-               segment_type,
-                prev, 
-                point, 
-                1., 
-                color
-            ));
-            prev = point;
-        }
-        let mut camera = Camera::default();
-        camera.position_set(point_sum / point_cnt as f32, 20. * MAP_SIZE as f32);
+        let camera = {
+            let mut point_sum = vec2(0., 0.);
+            let mut point_cnt = 0;
+            let mut prev = vec2(0., 0.);
+            let stringline_num = 100;
+            let color = vec3(
+                qrand::gen_range(0.5, 1.),
+                qrand::gen_range(0., 1.),
+                qrand::gen_range(0., 1.),
+            );
+            for i in 0..stringline_num {
+                let point = vec2(qrand::gen_range(-100., 100.), qrand::gen_range(-100., 100.));
+                point_sum += point;
+                point_cnt += 1;
+                let segment_type = match i {
+                    0 => SegmentType::All,
+                    _ => SegmentType::NoFirst,
+                };
+                lines.add(Line::new(segment_type, prev, point, 1., color));
+                prev = point;
+            }
+            let mut camera = Camera::default();
+            camera.position_set(point_sum / point_cnt as f32, 20. * MAP_SIZE as f32);
+            camera
+        };
 
+        let camera = {
+            let f = File::open("map.txt").unwrap();
+            let f = BufReader::new(f);
+            use std::io::prelude::*;
+            let mut point_sum = vec2(0., 0.);
+            let mut point_cnt = 0;
+            for line in f.lines() {
+                let mut points = vec![];
+                let line = line.unwrap();
+                let numbers: Vec<_> = line.split(" ").collect();
+                for i in 0..numbers.len() / 2 {
+                    points.push(vec2(
+                        numbers[i * 2].parse().unwrap(),
+                        numbers[i * 2 + 1].parse().unwrap(),
+                    ));
+                }
+                let mut prev = points[0];
+                for (i, point) in points.into_iter().enumerate() {
+                    point_sum += point;
+                    point_cnt += 1;
+                    lines.add(Line::new(
+                        match i {
+                            0 => SegmentType::All,
+                            _ => SegmentType::NoFirst,
+                        },
+                        prev,
+                        point,
+                        0.00001,
+                        vec3(0., 0., 0.), // vec3(qrand::gen_range(0.5, 1.), qrand::gen_range(0., 1.), qrand::gen_range(0., 1.))
+                    ));
+                    prev = point;
+                }
+                if point_cnt > 1000_000 {
+                    break;
+                }
+            }
+            let mut camera = Camera::default();
+            camera.position_set(point_sum / point_cnt as f32, 20. * MAP_SIZE as f32);
+            camera
+        };
         Stage {
             lines_renderer: LinesRenderer::new(ctx),
             camera,

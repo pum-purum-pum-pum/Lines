@@ -9,10 +9,10 @@ use crate::camera::Camera;
 #[rustfmt::skip]
 pub const RECT: &[f32] = &[
     0., 0., 
-    1., -0.95,
-    1., 0.95,
-    -1., 0.95,
-    -1., -0.95,
+    1.1, -0.95,
+    1.1, 0.95,
+    -1.1, 0.95,
+    -1.1, -0.95,
 ];
 
 #[rustfmt::skip]
@@ -22,7 +22,7 @@ const RECT_INDICES: &[u16] = &[
     0, 3, 4,
     0, 4, 1
 ];
-pub const MAX_RECT_NUM: usize = 5000_000;
+pub const MAX_RECT_NUM: usize = 100;
 
 #[repr(u8)]
 pub enum SegmentType {
@@ -43,7 +43,13 @@ pub struct Line {
 }
 
 impl Line {
-    pub fn new(segment_type: SegmentType, from: Vec2, to: Vec2, thickness: f32, color: Vec3) -> Self {
+    pub fn new(
+        segment_type: SegmentType,
+        from: Vec2,
+        to: Vec2,
+        thickness: f32,
+        color: Vec3,
+    ) -> Self {
         let dir = to - from;
         let length = dir.length();
         let angle = std::f32::consts::PI / 2. - dir.y().atan2(dir.x());
@@ -52,7 +58,7 @@ impl Line {
             position: (from + to) / 2.,
             scale: vec2(thickness, length),
             angle,
-            color
+            color,
         }
     }
 }
@@ -94,10 +100,7 @@ impl LinesRenderer {
             MAX_RECT_NUM * std::mem::size_of::<Line>(),
         );
         let bindings = Bindings {
-            vertex_buffers: vec![
-                geometry_vertex_buffer,
-                lines_vertex_buffer,
-            ],
+            vertex_buffers: vec![geometry_vertex_buffer, lines_vertex_buffer],
             index_buffer,
             images: vec![],
         };
@@ -159,11 +162,7 @@ impl LinesRenderer {
         ctx.apply_pipeline(&self.pipeline);
         ctx.apply_bindings(&self.bindings);
         ctx.apply_uniforms(&hex_shader::Uniforms { mvp });
-        ctx.draw(
-            0,
-            RECT_INDICES.len() as i32,
-            self.lines.0.len() as i32,
-        );
+        ctx.draw(0, RECT_INDICES.len() as i32, self.lines.0.len() as i32);
     }
 }
 
@@ -178,13 +177,13 @@ mod hex_shader {
     attribute float angle;
     attribute vec3 color0;
     
-    varying lowp vec2 local_pp;
-    varying lowp vec2 pp;
-    varying lowp vec2 ip;
-    varying lowp float a;
-    varying lowp vec2 s;
-    varying lowp vec4 color;
-    varying lowp float st;
+    varying highp vec2 local_pp;
+    varying highp vec2 pp;
+    varying highp vec2 ip;
+    varying highp float a;
+    varying highp vec2 s;
+    varying highp vec4 color;
+    varying highp float st;
 
     uniform mat4 mvp;
     void main() {
@@ -192,63 +191,62 @@ mod hex_shader {
             vec2(
                 scale.x * pos.x * cos(angle) + scale.y * pos.y * sin(angle),
                 -scale.x * pos.x * sin(angle) + scale.y * pos.y * cos(angle));
-        vec4 new_pos = vec4(apos + inst_pos, 0.0, 1.0 + segment_type - segment_type);
-        lowp vec4 res_pos = mvp * new_pos;
+        vec4 new_pos = vec4(apos + inst_pos, 0.0, 1.0);
+        highp vec4 res_pos = mvp * new_pos;
         gl_Position = res_pos;
         
+        st = segment_type;
         local_pp = pos;
         pp = vec2(new_pos.x, new_pos.y);
         ip = inst_pos;
         a = angle;
         s = scale;
         color = vec4(color0, 0.5);
-        st = segment_type;
     }
     "#;
 
     pub const FRAGMENT: &str = r#"#version 100
-    varying lowp vec2 local_pp;
-    varying lowp vec2 pp;
-    varying lowp vec2 ip;
-    varying lowp float a;
-    varying lowp vec2 s;
-    varying lowp vec4 color;
-    varying lowp float st;
+    varying highp vec2 local_pp;
+    varying highp vec2 pp;
+    varying highp vec2 ip;
+    varying highp float a;
+    varying highp vec2 s;
+    varying highp vec4 color;
+    varying highp float st;
 
     uniform highp mat4 mvp;
-    const lowp float aaborder = 0.00285;
+    const highp float aaborder = 0.00285;
 
-    lowp float line_segment(in lowp vec2 p, in lowp vec2 a, in lowp vec2 b) {
-        lowp vec2 ba = b - a;
-        lowp vec2 pa = p - a;
-        lowp float h = clamp(dot(pa, ba) / dot(ba, ba), 0., 1.);
+    highp float line_segment(in highp vec2 p, in highp vec2 a, in highp vec2 b) {
+        highp vec2 ba = b - a;
+        highp vec2 pa = p - a;
+        highp float h = clamp(dot(pa, ba) / dot(ba, ba), 0., 1.);
         return length(pa - h * ba);
     }
 
     void main() {
-        lowp mat2 rot = mat2(cos(a), -sin(a),
+        highp mat2 rot = mat2(cos(a), -sin(a),
                         sin(a), cos(a));
-        lowp vec2 a = ip + rot * vec2(0.0, -s.y / 2.);
-        lowp vec2 b = ip + rot * vec2(0.0, s.y / 2.);
-        lowp float d = line_segment(pp, a, b) - s.x ;
-        lowp float scaled_border = min(aaborder / mvp[0][0], 10.5);
-        lowp float edge1 = -scaled_border;
-        lowp float edge2 = 0.;
+        highp vec2 a = ip + rot * vec2(0.0, -s.y / 2.);
+        highp vec2 b = ip + rot * vec2(0.0, s.y / 2.);
+        highp float d = line_segment(pp, a, b) - s.x ;
+        // highp float scaled_border = min(aaborder / mvp[0][0], 10.5);
+        // highp float scaled_border = s.x * aaborder;
+        highp float scaled_border = aaborder / mvp[0][0];
+        highp float edge1 = -scaled_border;
+        highp float edge2 = 0.;
 
         if (d < 0.) {
-            lowp float smooth = 1.;
+            highp float smooth = 1.;
             if (d > edge1) {
-                smooth = 1. - smoothstep(edge1, edge2, d);
-                if (abs(st - 1.) < 0.01 && local_pp.y < -0.5) { // in SDF space
-                    discard;
-                } else if (abs(st - 2.) < 0.01 && local_pp.y > 0.5) {
-                    discard;
-                }
-                // if (abs(st - 1.) < 0.01 && local_pp.y > 0.5) { // in SDF space
+                smooth = 1. - smoothstep(edge1, edge2, d) + st - st;
+                // if (abs(st - 1.) < 0.01 && local_pp.y < -0.5) { // in SDF space
                 //     discard;
-                // };
+                // } else if (abs(st - 2.) < 0.01 && local_pp.y > 0.5) {
+                //     discard;
+                // }
             }
-            lowp vec4 color = color;
+            highp vec4 color = color;
             color.a = smooth;
             gl_FragColor = color;
         } else {

@@ -13,7 +13,7 @@ fn main() -> Result<()> {
     let file = File::open("planet_osm_line_202008251533_copy.csv")?;
     let buf_reader = BufReader::new(file);
     let mut rdr = csv::Reader::from_reader(buf_reader);
-    let records = rdr.records() ;
+    let records = rdr.records();
     for result in records {
         let mut res_linestring = vec![];
         let record = result?;
@@ -23,8 +23,8 @@ fn main() -> Result<()> {
             if let Geometry::LineString(linestring) = g {
                 for c in linestring.0 {
                     res_linestring.push((c.x, c.y));
-                    max_x = if max_x < c.x {c.x} else {max_x};
-                    max_y = if max_y < c.y {c.y} else {max_y};
+                    max_x = if max_x < c.x { c.x } else { max_x };
+                    max_y = if max_y < c.y { c.y } else { max_y };
                 }
             }
         }
