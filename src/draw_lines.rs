@@ -22,7 +22,7 @@ const RECT_INDICES: &[u16] = &[
     0, 3, 4,
     0, 4, 1
 ];
-pub const MAX_RECT_NUM: usize = 100;
+pub const MAX_RECT_NUM: usize = 5000_000;
 
 #[repr(u8)]
 pub enum SegmentType {
@@ -37,8 +37,8 @@ pub enum SegmentType {
 pub struct Line {
     pub segment_type: f32,
     pub position: Vec2,
-    pub scale: Vec2,
-    pub angle: f32,
+    pub thickness: f32,
+    pub dir: Vec2,
     pub color: Vec3,
 }
 
@@ -51,13 +51,12 @@ impl Line {
         color: Vec3,
     ) -> Self {
         let dir = to - from;
-        let length = dir.length();
-        let angle = std::f32::consts::PI / 2. - dir.y().atan2(dir.x());
+        // let dir= dir.normalize();
         Line {
             segment_type: segment_type as u8 as f32,
             position: (from + to) / 2.,
-            scale: vec2(thickness, length),
-            angle,
+            thickness,
+            dir,
             color,
         }
     }
@@ -124,8 +123,8 @@ impl LinesRenderer {
                 VertexAttribute::with_buffer("pos", VertexFormat::Float2, 0),
                 VertexAttribute::with_buffer("segment_type", VertexFormat::Float1, 1),
                 VertexAttribute::with_buffer("inst_pos", VertexFormat::Float2, 1),
-                VertexAttribute::with_buffer("scale", VertexFormat::Float2, 1),
-                VertexAttribute::with_buffer("angle", VertexFormat::Float1, 1),
+                VertexAttribute::with_buffer("thickness", VertexFormat::Float1, 1),
+                VertexAttribute::with_buffer("dir", VertexFormat::Float2, 1),
                 VertexAttribute::with_buffer("color0", VertexFormat::Float3, 1),
             ],
             shader,
@@ -173,24 +172,22 @@ mod hex_shader {
     attribute vec2 pos;
     attribute float segment_type;
     attribute vec2 inst_pos;
-    attribute vec2 scale;
-    attribute float angle;
+    attribute float thickness;
+    attribute vec2 dir;
     attribute vec3 color0;
-    
+
     varying highp vec2 local_pp;
     varying highp vec2 pp;
     varying highp vec2 ip;
-    varying highp float a;
-    varying highp vec2 s;
+    varying highp float th;
     varying highp vec4 color;
     varying highp float st;
+    varying highp vec2 dr;
 
     uniform mat4 mvp;
     void main() {
-        vec2 apos = 
-            vec2(
-                scale.x * pos.x * cos(angle) + scale.y * pos.y * sin(angle),
-                -scale.x * pos.x * sin(angle) + scale.y * pos.y * cos(angle));
+        vec2 n = vec2(-dir.y, dir.x) / length(dir);
+        vec2 apos = pos.y * dir + pos.x * n * thickness;
         vec4 new_pos = vec4(apos + inst_pos, 0.0, 1.0);
         highp vec4 res_pos = mvp * new_pos;
         gl_Position = res_pos;
@@ -199,8 +196,8 @@ mod hex_shader {
         local_pp = pos;
         pp = vec2(new_pos.x, new_pos.y);
         ip = inst_pos;
-        a = angle;
-        s = scale;
+        dr = dir;
+        th = thickness;
         color = vec4(color0, 0.5);
     }
     "#;
@@ -209,13 +206,13 @@ mod hex_shader {
     varying highp vec2 local_pp;
     varying highp vec2 pp;
     varying highp vec2 ip;
-    varying highp float a;
-    varying highp vec2 s;
+    varying highp float th;
     varying highp vec4 color;
     varying highp float st;
+    varying highp vec2 dr;
 
     uniform highp mat4 mvp;
-    const highp float aaborder = 0.00285;
+    const highp float aaborder = 0.00245;
 
     highp float line_segment(in highp vec2 p, in highp vec2 a, in highp vec2 b) {
         highp vec2 ba = b - a;
@@ -225,26 +222,24 @@ mod hex_shader {
     }
 
     void main() {
-        highp mat2 rot = mat2(cos(a), -sin(a),
-                        sin(a), cos(a));
-        highp vec2 a = ip + rot * vec2(0.0, -s.y / 2.);
-        highp vec2 b = ip + rot * vec2(0.0, s.y / 2.);
-        highp float d = line_segment(pp, a, b) - s.x ;
+        highp vec2 a = ip - dr  / 2.;
+        highp vec2 b = ip + dr / 2.;
+        highp float d = line_segment(pp, a, b) - th ;
         // highp float scaled_border = min(aaborder / mvp[0][0], 10.5);
-        // highp float scaled_border = s.x * aaborder;
+        // highp float scaled_border = th * aaborder;
         highp float scaled_border = aaborder / mvp[0][0];
         highp float edge1 = -scaled_border;
         highp float edge2 = 0.;
 
         if (d < 0.) {
             highp float smooth = 1.;
+            if (abs(st - 1.) < 0.01 && local_pp.y < -0.5) { // in SDF space
+                discard;
+            } else if (abs(st - 2.) < 0.01 && local_pp.y > 0.5) {
+                discard;
+            }
             if (d > edge1) {
                 smooth = 1. - smoothstep(edge1, edge2, d) + st - st;
-                // if (abs(st - 1.) < 0.01 && local_pp.y < -0.5) { // in SDF space
-                //     discard;
-                // } else if (abs(st - 2.) < 0.01 && local_pp.y > 0.5) {
-                //     discard;
-                // }
             }
             highp vec4 color = color;
             color.a = smooth;
