@@ -9,10 +9,10 @@ use crate::camera::Camera;
 #[rustfmt::skip]
 pub const RECT: &[f32] = &[
     0., 0., 
-    1.1, -0.95,
-    1.1, 0.95,
-    -1.1, 0.95,
-    -1.1, -0.95,
+    1.1, -1.,
+    1.1, 1.,
+    -1.1, 1.,
+    -1.1, -1.,
 ];
 
 #[rustfmt::skip]
@@ -22,7 +22,6 @@ const RECT_INDICES: &[u16] = &[
     0, 3, 4,
     0, 4, 1
 ];
-pub const MAX_RECT_NUM: usize = 5000_000;
 
 #[repr(u8)]
 pub enum SegmentType {
@@ -66,8 +65,8 @@ impl Line {
 pub struct Lines(Vec<Line>);
 
 impl Lines {
-    pub fn new_gpu_backed() -> Self {
-        Lines(Vec::with_capacity(MAX_RECT_NUM))
+    fn new_gpu_backed(max_lines_num: usize) -> Self {
+        Lines(Vec::with_capacity(max_lines_num))
     }
 
     pub fn clear(&mut self) {
@@ -87,16 +86,17 @@ pub struct LinesRenderer {
     pipeline: Pipeline,
     bindings: Bindings,
     pub lines: Lines,
+    max_lines_num: usize,
 }
 
 impl LinesRenderer {
-    pub fn new(ctx: &mut Context) -> Self {
+    pub fn new(ctx: &mut Context, max_lines_num: usize) -> Self {
         let geometry_vertex_buffer = Buffer::immutable(ctx, BufferType::VertexBuffer, &RECT);
         let index_buffer = Buffer::immutable(ctx, BufferType::IndexBuffer, &RECT_INDICES);
         let lines_vertex_buffer = Buffer::stream(
             ctx,
             BufferType::VertexBuffer,
-            MAX_RECT_NUM * std::mem::size_of::<Line>(),
+            max_lines_num * std::mem::size_of::<Line>(),
         );
         let bindings = Bindings {
             vertex_buffers: vec![geometry_vertex_buffer, lines_vertex_buffer],
@@ -138,10 +138,15 @@ impl LinesRenderer {
             },
         );
         LinesRenderer {
-            lines: Lines::new_gpu_backed(),
+            lines: Lines::new_gpu_backed(max_lines_num),
             pipeline,
             bindings,
+            max_lines_num
         }
+    }
+
+    pub fn create_lines(&self) -> Lines {
+        Lines::new_gpu_backed(self.max_lines_num)
     }
 
     pub fn clear_buffers(&mut self) {
@@ -176,25 +181,26 @@ mod hex_shader {
     attribute vec2 dir;
     attribute vec3 color0;
 
-    varying highp vec2 local_pp;
-    varying highp vec2 pp;
-    varying highp vec2 ip;
-    varying highp float th;
-    varying highp vec4 color;
-    varying highp float st;
-    varying highp vec2 dr;
+    varying lowp vec2 local_position;
+    varying lowp vec2 projected_position;
+    varying lowp vec2 ip;
+    varying lowp float th;
+    varying lowp vec4 color;
+    // segment type. Have to pass as float, but it is just enum
+    varying lowp float st;
+    varying lowp vec2 dr;
 
     uniform mat4 mvp;
     void main() {
         vec2 n = vec2(-dir.y, dir.x) / length(dir);
         vec2 apos = pos.y * dir + pos.x * n * thickness;
         vec4 new_pos = vec4(apos + inst_pos, 0.0, 1.0);
-        highp vec4 res_pos = mvp * new_pos;
+        lowp vec4 res_pos = mvp * new_pos;
         gl_Position = res_pos;
         
         st = segment_type;
-        local_pp = pos;
-        pp = vec2(new_pos.x, new_pos.y);
+        local_position = pos;
+        projected_position = vec2(new_pos.x, new_pos.y);
         ip = inst_pos;
         dr = dir;
         th = thickness;
@@ -203,45 +209,45 @@ mod hex_shader {
     "#;
 
     pub const FRAGMENT: &str = r#"#version 100
-    varying highp vec2 local_pp;
-    varying highp vec2 pp;
-    varying highp vec2 ip;
-    varying highp float th;
-    varying highp vec4 color;
-    varying highp float st;
-    varying highp vec2 dr;
+    varying lowp vec2 local_position;
+    varying lowp vec2 projected_position;
+    varying lowp vec2 ip;
+    varying lowp float th;
+    varying lowp vec4 color;
+    varying lowp float st;
+    varying lowp vec2 dr;
 
     uniform highp mat4 mvp;
-    const highp float aaborder = 0.00245;
+    const lowp float aaborder = 0.00245;
 
-    highp float line_segment(in highp vec2 p, in highp vec2 a, in highp vec2 b) {
-        highp vec2 ba = b - a;
-        highp vec2 pa = p - a;
-        highp float h = clamp(dot(pa, ba) / dot(ba, ba), 0., 1.);
+    lowp float line_segment(in lowp vec2 p, in lowp vec2 a, in lowp vec2 b) {
+        lowp vec2 ba = b - a;
+        lowp vec2 pa = p - a;
+        lowp float h = clamp(dot(pa, ba) / dot(ba, ba), 0., 1.);
         return length(pa - h * ba);
     }
 
     void main() {
-        highp vec2 a = ip - dr  / 2.;
-        highp vec2 b = ip + dr / 2.;
-        highp float d = line_segment(pp, a, b) - th ;
-        // highp float scaled_border = min(aaborder / mvp[0][0], 10.5);
-        // highp float scaled_border = th * aaborder;
-        highp float scaled_border = aaborder / mvp[0][0];
-        highp float edge1 = -scaled_border;
-        highp float edge2 = 0.;
+        lowp vec2 a = ip - dr  / 2.;
+        lowp vec2 b = ip + dr / 2.;
+        lowp float d = line_segment(projected_position, a, b) - th ;
+        // lowp float scaled_border = min(aaborder / mvp[0][0], 10.5);
+        // lowp float scaled_border = th * aaborder;
+        lowp float scaled_border = aaborder / mvp[0][0];
+        lowp float edge1 = -scaled_border;
+        lowp float edge2 = 0.;
 
         if (d < 0.) {
-            highp float smooth = 1.;
-            if (abs(st - 1.) < 0.01 && local_pp.y < -0.5) { // in SDF space
+            lowp float smooth = 1.;
+            if (abs(st - 1.) < 0.01 && local_position.y < -0.5) { // in SDF space
                 discard;
-            } else if (abs(st - 2.) < 0.01 && local_pp.y > 0.5) {
+            } else if (abs(st - 2.) < 0.01 && local_position.y > 0.5) {
                 discard;
             }
             if (d > edge1) {
                 smooth = 1. - smoothstep(edge1, edge2, d) + st - st;
             }
-            highp vec4 color = color;
+            lowp vec4 color = color;
             color.a = smooth;
             gl_FragColor = color;
         } else {

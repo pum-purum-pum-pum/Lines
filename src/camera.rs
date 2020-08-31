@@ -17,6 +17,14 @@ pub struct Camera {
 }
 
 impl Camera {
+    pub fn new(init_zoom: f32, min_zoom: f32) -> Self {
+        Camera {
+            desired_zoom: init_zoom,
+            zoom: min_zoom,
+            ..Default::default()
+        }
+    }
+
     pub fn get_mvp(&self, aspect_ratio: f32) -> Mat4 {
         let w = 1. / self.zoom;
         let h = aspect_ratio / self.zoom;
