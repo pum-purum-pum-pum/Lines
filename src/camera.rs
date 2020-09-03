@@ -1,7 +1,7 @@
 use glam::{vec2, vec3, vec4, Mat4, Vec2};
-pub const MAX_ZOOM: f32 = 1000.0;
-pub const INIT_ZOOM: f32 = 10.;
-pub const MIN_ZOOM: f32 = 0.00058;
+pub const MAX_ZOOM: f32 = 100000.0;
+pub const INIT_ZOOM: f32 = 0.1;
+pub const MIN_ZOOM: f32 = 0.001;
 
 use std::ops::{Add, Mul};
 
@@ -17,6 +17,14 @@ pub struct Camera {
 }
 
 impl Camera {
+    pub fn new(init_zoom: f32, min_zoom: f32) -> Self {
+        Camera {
+            desired_zoom: init_zoom,
+            zoom: min_zoom,
+            ..Default::default()
+        }
+    }
+
     pub fn get_mvp(&self, aspect_ratio: f32) -> Mat4 {
         let w = 1. / self.zoom;
         let h = aspect_ratio / self.zoom;
