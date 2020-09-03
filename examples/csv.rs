@@ -30,11 +30,11 @@ fn main() -> Result<()> {
         }
         res.push(res_linestring);
     }
-    for j in res.iter_mut() {
-        for i in j.iter_mut() {
-            *i = (1. * i.0 / max_x, 1. * i.1 / max_y)
-        }
-    }
+    // for j in res.iter_mut() {
+    //     for i in j.iter_mut() {
+    //         *i = (1. * i.0 / max_x, 1. * i.1 / max_y)
+    //     }
+    // }
     // use std::slice::Join;
     let mut file = File::create("map.txt")?;
     for i in res.iter() {
