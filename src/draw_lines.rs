@@ -50,7 +50,6 @@ impl Line {
         color: Vec3,
     ) -> Self {
         let dir = to - from;
-        // let dir= dir.normalize();
         Line {
             segment_type: segment_type as u8 as f32,
             position: (from + to) / 2.,
