@@ -1,7 +1,7 @@
 // experiment drawing lines with instancing. Transform is attribute params
 // probably it's not faster
 
-use glam::{vec2, Vec2, Vec3};
+use glam::{Vec2, Vec3};
 use miniquad::*;
 
 use crate::camera::Camera;
@@ -229,10 +229,10 @@ mod hex_shader {
     void main() {
         lowp vec2 a = ip - dr  / 2.;
         lowp vec2 b = ip + dr / 2.;
-        lowp float d = line_segment(projected_position, a, b) - th ;
+        lowp float d = line_segment(projected_position, a, b) - th;
         // lowp float scaled_border = min(aaborder / mvp[0][0], 10.5);
         // lowp float scaled_border = th * aaborder;
-        lowp float scaled_border = aaborder / mvp[0][0];
+        lowp float scaled_border = aaborder / mvp[1][1];
         lowp float edge1 = -scaled_border;
         lowp float edge2 = 0.;
 
