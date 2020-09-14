@@ -217,7 +217,7 @@ mod hex_shader {
     varying lowp vec2 dr;
 
     uniform highp mat4 mvp;
-    const lowp float aaborder = 0.00245;
+    const lowp float aaborder = 0.00445;
 
     lowp float line_segment(in lowp vec2 p, in lowp vec2 a, in lowp vec2 b) {
         lowp vec2 ba = b - a;

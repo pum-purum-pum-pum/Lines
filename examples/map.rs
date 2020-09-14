@@ -52,7 +52,7 @@ impl Stage {
         use std::fs::File;
         use std::io::BufReader;
         let camera = {
-            let f = File::open("Dubna.txt").unwrap();
+            let f = File::open("random.txt").unwrap();
             let f = BufReader::new(f);
             use std::io::prelude::*;
             let mut point_sum = vec2(0., 0.);
