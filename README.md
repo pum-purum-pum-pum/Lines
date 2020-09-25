@@ -1,6 +1,6 @@
 # HQ lines
 
-[Drawing lines note](pum-purum-pum-pum.github.io/hqlines)
+[Drawing lines note](https://vladjuckov.github.io/hqlines)
 
 ## Run it
 
