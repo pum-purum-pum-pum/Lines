@@ -1,6 +1,6 @@
+use glam::{vec2, vec3, Vec2};
 use std::fs::File;
 use std::io::BufReader;
-use glam::{vec2, vec3, Vec2};
 
 pub type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 

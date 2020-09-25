@@ -140,7 +140,7 @@ impl LinesRenderer {
             lines: Lines::new_gpu_backed(max_lines_num),
             pipeline,
             bindings,
-            max_lines_num
+            max_lines_num,
         }
     }
 
@@ -197,7 +197,7 @@ mod hex_shader {
         vec4 new_pos = vec4(apos + inst_pos, 0.0, 1.0);
         vec4 res_pos = mvp * new_pos;
         gl_Position = res_pos;
-        
+
         st = segment_type;
         local_position = pos;
         projected_position = vec2(new_pos.x, new_pos.y);

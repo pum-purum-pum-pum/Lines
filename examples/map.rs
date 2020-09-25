@@ -69,8 +69,8 @@ impl Stage {
                     points.push(point);
                     point_sum += point;
                     point_cnt += 1;
-                    max_x = if point.x() > max_x {point.x()} else { max_x };
-                    max_y = if point.y() > max_y {point.y()} else { max_y };
+                    max_x = if point.x() > max_x { point.x() } else { max_x };
+                    max_y = if point.y() > max_y { point.y() } else { max_y };
                     if point_cnt >= max_lines {
                         break 'lines;
                     }
